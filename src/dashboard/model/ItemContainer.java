@@ -1,4 +1,4 @@
-package dashboard;
+package dashboard.model;
 
 public class ItemContainer {
 
