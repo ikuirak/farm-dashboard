@@ -4,6 +4,7 @@ import dashboard.model.FarmComponent;
 import dashboard.model.Item;
 import dashboard.model.ItemContainer;
 import dashboard.ui.FarmVisualizer;
+import dashboard.ui.DroneAnimator;
 
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -17,6 +18,7 @@ public class FarmDashboard {
 
     private ItemContainer farmRoot;
     private FarmVisualizer visualizer;
+    private DroneAnimator animator;
     private TreeView<FarmComponent> treeView;
     private Label statusLabel;
     private Stage dashboardStage;
@@ -89,6 +91,7 @@ public class FarmDashboard {
         );
 
         visualizer = new FarmVisualizer(farmPane);
+        animator = new DroneAnimator(visualizer, farmRoot);
 
         VBox centerPanel = new VBox(
             10,
@@ -102,10 +105,14 @@ public class FarmDashboard {
         Button visit = new Button("Go to Item");
         Button scan = new Button("Scan Farm");
 
-        visit.setDisable(true);
-        scan.setDisable(true);
+        visit.setOnAction(e -> visitSelected());
+        scan.setOnAction(e -> scanFarm());
 
         statusLabel = new Label("Farm Dashboard Ready");
+
+        animator.setOnFinished(() ->
+            statusLabel.setText("Drone flight completed.")
+        );
 
         VBox bottomPanel = new VBox(
             10,
@@ -256,7 +263,9 @@ public class FarmDashboard {
                 x < 0 || y < 0 ||
                 length <= 0 || width <= 0 || height <= 0 ||
                 x + length > 800 || y + width > 600) {
-                showMessage("Enter valid values within the 800 x 600 farm.");
+                showMessage(
+                    "Enter valid values within the 800 x 600 farm."
+                );
                 return null;
             }
 
@@ -288,6 +297,10 @@ public class FarmDashboard {
     }
 
     private void refreshDashboard() {
+        if (animator != null) {
+            animator.resetToHome();
+        }
+
         TreeItem<FarmComponent> root = createTreeItem(farmRoot);
         treeView.setRoot(root);
         treeView.getSelectionModel().select(root);
@@ -305,6 +318,42 @@ public class FarmDashboard {
         }
 
         return item;
+    }
+
+    private void visitSelected() {
+        TreeItem<FarmComponent> selected =
+            treeView.getSelectionModel().getSelectedItem();
+
+        if (selected == null || selected.getValue() == farmRoot) {
+            showMessage("Please select an item to visit.");
+            return;
+        }
+
+        FarmComponent target = selected.getValue();
+
+        boolean success = animator.visitComponent(target);
+
+        if (success) {
+            statusLabel.setText(
+                "Drone visiting " + target.getName() + "."
+            );
+        } else {
+            showMessage(
+                "Add an item named Drone to the farm first."
+            );
+        }
+    }
+
+    private void scanFarm() {
+        boolean success = animator.scanFarm();
+
+        if (success) {
+            statusLabel.setText("Drone scanning the farm.");
+        } else {
+            showMessage(
+                "Add an item named Drone to the farm first."
+            );
+        }
     }
 
     private void showMessage(String message) {
