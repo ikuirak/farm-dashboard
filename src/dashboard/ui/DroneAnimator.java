@@ -72,7 +72,7 @@ public class DroneAnimator {
 
         Point2D home = centerOf(drone);
         Point2D start = currentCenter(node, home);
-        Point2D destination = clampToFarm(centerOf(target));
+        Point2D destination = clampToFarm(centerOf(target), drone);
 
         SequentialTransition flight = new SequentialTransition();
         flight.getChildren().add(leg(node, home, start, destination));
@@ -99,10 +99,14 @@ public class DroneAnimator {
 
         // build the rows and swap direction after each one
         List<Point2D> waypoints = new ArrayList<>();
-        double left = SCAN_MARGIN;
-        double right = FARM_WIDTH - SCAN_MARGIN;
+        double halfLength = drone.getLength() / 2.0;
+        double halfWidth = drone.getWidth() / 2.0;
+        double left = halfLength + SCAN_MARGIN;
+        double right = FARM_WIDTH - halfLength - SCAN_MARGIN;
         boolean leftToRight = true;
-        for (double y = SCAN_MARGIN; y <= FARM_HEIGHT - SCAN_MARGIN; y += SCAN_SPACING) {
+        for (double y = halfWidth + SCAN_MARGIN;
+             y <= FARM_HEIGHT - halfWidth - SCAN_MARGIN;
+             y += SCAN_SPACING) {
             waypoints.add(new Point2D(leftToRight ? left : right, y));
             waypoints.add(new Point2D(leftToRight ? right : left, y));
             leftToRight = !leftToRight;
@@ -183,9 +187,14 @@ public class DroneAnimator {
     }
 
     // keeps a point inside the farm
-    private Point2D clampToFarm(Point2D p) {
-        return new Point2D(Math.max(0, Math.min(FARM_WIDTH, p.getX())),
-                           Math.max(0, Math.min(FARM_HEIGHT, p.getY())));
+    private Point2D clampToFarm(Point2D p, FarmComponent drone) {
+        double halfLength = drone.getLength() / 2.0;
+        double halfWidth = drone.getWidth() / 2.0;
+
+        return new Point2D(Math.max(halfLength,
+                                   Math.min(FARM_WIDTH - halfLength, p.getX())),
+                           Math.max(halfWidth,
+                                   Math.min(FARM_HEIGHT - halfWidth, p.getY())));
     }
 
     // searches the tree for the item named drone and ignores letter case
